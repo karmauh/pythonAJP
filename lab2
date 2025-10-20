@@ -1,0 +1,159 @@
+import math
+from datetime import datetime
+import matplotlib.pyplot as plt
+
+def wczytaj_liczby():
+    s = input("Podaj liczby calkowite oddzielone spacja: ").strip()
+    if not s:
+        return None
+    try:
+        return [int(x) for x in s.split()]
+    except ValueError:
+        print("wszystkie wartosci musza byc calkowite")
+        return None
+
+def statystyki(liczby):
+    if not liczby:
+        return None
+
+    n = 0
+    suma = 0
+    dodatnie = 0
+    ujemne = 0
+    zera = 0
+    minimum = liczby[0]
+    maksimum = liczby[0]
+
+    for x in liczby:
+        n = n + 1
+        suma = suma + x
+
+        if x > 0:
+            dodatnie += 1
+        elif x < 0:
+            ujemne += 1
+        else:
+            zera += 1
+
+        if x < minimum:
+            minimum = x
+        if x > maksimum:
+            maksimum = x
+
+    srednia = suma / n
+
+    suma_kw_odch = 0.0
+    for x in liczby:
+        dx = x - srednia
+        suma_kw_odch += dx * dx
+
+    wariancja_pop = suma_kw_odch / n
+    odchylenie_pop = math.sqrt(wariancja_pop)
+
+    if n > 1:
+        wariancja_pr = suma_kw_odch / (n - 1)
+        odchylenie_pr = math.sqrt(wariancja_pr)
+    else:
+        wariancja_pr = float('nan')
+        odchylenie_pr = float('nan')
+
+    return {
+        "ilosc liczb": n,
+        "suma": suma,
+        "srednia": srednia,
+        "dodatnie": dodatnie,
+        "ujemne": ujemne,
+        "zera": zera,
+        "minimum": minimum,
+        "maksimum": maksimum,
+        "wariancja_pop": wariancja_pop,
+        "odchylenie_pop": odchylenie_pop,
+        "wariancja_pr": wariancja_pr,
+        "odchylenie_pr": odchylenie_pr,
+    }
+
+def zapisz_wykresy(liczby, wyniki, znacznik):
+    pliki = {}
+
+    #histogram
+    fname1 = f"histogram_{znacznik}.png"
+    plt.figure()
+    plt.hist(liczby, bins="auto")
+    plt.title("Histogram wartosci")
+    plt.xlabel("Wartosc")
+    plt.ylabel("Czestosc")
+    plt.tight_layout()
+    plt.savefig(fname1)
+    plt.close()
+    pliki["histogram"] = fname1
+
+    #dodatnie/ujemne/zera
+    fname2 = f"slupki_{znacznik}.png"
+    labels = ["dodatnie", "ujemne", "zera"]
+    values = [wyniki["dodatnie"], wyniki["ujemne"], wyniki["zera"]]
+    plt.figure()
+    plt.bar(labels, values)
+    plt.title("Liczebnosc: dodatnie/ujemne/zera")
+    plt.xlabel("Kategoria")
+    plt.ylabel("Liczba")
+    plt.tight_layout()
+    plt.savefig(fname2)
+    plt.close()
+    pliki["slupki"] = fname2
+
+    #kolejnosci wprowadzonych liczb
+    fname3 = f"linia_{znacznik}.png"
+    plt.figure()
+    plt.plot(range(1, len(liczby) + 1), liczby, marker="o")
+    plt.title("Kolejnosc wprowadzonych liczb")
+    plt.xlabel("Indeks (1..n)")
+    plt.ylabel("Wartosc")
+    plt.tight_layout()
+    plt.savefig(fname3)
+    plt.close()
+    pliki["linia"] = fname3
+
+    return pliki
+
+def main():
+    znacznik = datetime.now().strftime("%Y%m%d_%H%M%S")
+    np = "wyniki_analizy_" + znacznik + ".txt"
+    with open(np, "w", encoding="utf-8") as f:
+        def tee(line=""):
+            print(line)
+            f.write(line + "\n")
+
+        liczby = wczytaj_liczby()
+        if not liczby:
+            tee("nie wprowadzono zadnych danych.")
+            return
+
+        wyniki = statystyki(liczby)
+        tee(f"Wejscie: {' '.join(str(x) for x in liczby)}")
+        tee(f"Odwrocone: {' '.join(str(x) for x in reversed(liczby))}")
+        tee(f"Ilosc liczb: {wyniki['ilosc liczb']}")
+        tee(f"Suma: {wyniki['suma']}")
+        tee(f"Srednia: {wyniki['srednia']:.2f}")
+        tee(f"Dodatnie: {wyniki['dodatnie']}")
+        tee(f"Ujemne: {wyniki['ujemne']}")
+        tee(f"Zera: {wyniki['zera']}")
+        tee(f"Najwieksza: {wyniki['maksimum']}")
+        tee(f"Najmniejsza: {wyniki['minimum']}")
+        tee(f"Wariancja populacyjna: {wyniki['wariancja_pop']:.4f}")
+        tee(f"Odchylenie populacyjne: {wyniki['odchylenie_pop']:.4f}")
+        tee(f"Wariancja probki: {wyniki['wariancja_pr']:.4f}")
+        tee(f"Odchylenie probki: {wyniki['odchylenie_pr']:.4f}")
+
+        pliki = zapisz_wykresy(liczby, wyniki, znacznik)
+        tee(f"Zapisano wykres: {pliki['histogram']}")
+        tee(f"Zapisano wykres: {pliki['slupki']}")
+        tee(f"Zapisano wykres: {pliki['linia']}")
+
+    print(f"Wyniki zapisano do pliku: {np}")
+
+if __name__ == "__main__":
+    while True:
+        main()
+        odp = input("Czy chcesz kontynuowac? (tak/nie): ").strip().lower()
+        if odp != 'tak':
+            break
